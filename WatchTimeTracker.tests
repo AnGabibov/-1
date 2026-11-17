@@ -1,0 +1,79 @@
+using Microsoft.Data.Sqlite;
+using WatchTimeTracker.API.DAO;
+using WatchTimeTracker.API.Models;
+
+// 1. Подключение к БД
+var dbPath = "TimeTracker.db";
+var connectionString = $"Data Source={dbPath}";
+
+Console.WriteLine("=== ТЕСТИРОВАНИЕ DAO-СЛОЯ ===\n");
+
+// Инициализация базы данных (если её нет)
+if (!File.Exists(dbPath))
+{
+    Console.WriteLine("База данных не найдена. Создаем из init.sql...");
+    using var conn = new SqliteConnection(connectionString);
+    conn.Open();
+    var script = File.ReadAllText("init.sql"); // Убедись, что init.sql копируется в выходную папку!
+    using var cmd = new SqliteCommand(script, conn);
+    cmd.ExecuteNonQuery();
+}
+
+// 2. Создаем DAO-объекты
+var clientDao = new ClientDao(connectionString);
+var projectDao = new ProjectDao(connectionString);
+var taskDao = new TaskDao(connectionString);
+var timeLogDao = new TimeLogDao(connectionString);
+
+// ==========================================
+// БЛОК 1: ТЕСТИРОВАНИЕ CRUD (Создание и чтение)
+// ==========================================
+Console.WriteLine("--- 1. Добавление тестовых данных ---");
+
+// Создаем клиента
+var client = new Client { Name = "ООО Ромашка", ContactInfo = "roman@mail.ru" };
+int clientId = clientDao.Insert(client);
+Console.WriteLine($"Добавлен клиент: {client.Name} (ID: {clientId})");
+
+// Создаем проект для этого клиента
+var project = new Project { ClientId = clientId, Name = "Сайт-визитка", Description = "Разработка лендинга" };
+int projectId = projectDao.Insert(project);
+Console.WriteLine($"Добавлен проект: {project.Name} (ID: {projectId})");
+
+// Создаем задачу для проекта
+var task = new TaskItem { ProjectId = projectId, Name = "Верстка", Description = "HTML/CSS" };
+int taskId = taskDao.Insert(task);
+Console.WriteLine($"Добавлена задача: {task.Name} (ID: {taskId})");
+
+// Создаем запись времени для задачи
+var timeLog = new TimeLog { TaskId = taskId, StartedAt = DateTime.UtcNow.AddHours(-2), EndedAt = DateTime.UtcNow, DurationSeconds = 7200, Comment = "Работа с макетом" };
+int logId = timeLogDao.Insert(timeLog);
+Console.WriteLine($"Добавлена запись времени (ID: {logId})\n");
+
+// ==========================================
+// БЛОК 2: ПРОВЕРКА МЕТОДОВ GetById и GetAll
+// ==========================================
+Console.WriteLine("--- 2. Проверка чтения данных ---");
+var fetchedProject = projectDao.GetById(projectId);
+Console.WriteLine($"Проект по ID {projectId}: {fetchedProject?.Name}");
+
+var allClients = clientDao.GetAll();
+Console.WriteLine($"Всего клиентов в БД: {allClients.Count}");
+
+// ==========================================
+// БЛОК 3: БИЗНЕС-ЗАПРОСЫ (JOIN, GROUP BY)
+// ==========================================
+Console.WriteLine("\n--- 3. Выполнение бизнес-запросов ---");
+
+// Сумма часов по проектам
+var hoursByProject = timeLogDao.GetHoursByProject(DateTime.UtcNow.AddDays(-7), DateTime.UtcNow.AddDays(1));
+foreach (var (name, hours) in hoursByProject)
+{
+    Console.WriteLine($"Проект: {name} -> Потрачено часов: {hours:F2}");
+}
+
+// Активные таймеры (если бы мы не закрыли запись)
+var activeTimers = timeLogDao.GetActiveTimers();
+Console.WriteLine($"\nАктивных таймеров: {activeTimers.Count}");
+
+Console.WriteLine("\nТестирование завершено.");
