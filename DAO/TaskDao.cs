@@ -32,8 +32,8 @@ namespace WatchTimeTracker.API.DAO
         {
             using var conn = GetConnection();
             var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT Id, ProjectId, Name, Description, Status FROM Tasks WHERE Id = ?";
-            cmd.Parameters.AddWithValue("?", id);
+            cmd.CommandText = "SELECT Id, ProjectId, Name, Description, Status FROM Tasks WHERE Id = $id";
+            cmd.Parameters.AddWithValue("$id", id);
             using var r = cmd.ExecuteReader();
             if (!r.Read()) return null;
             return new TaskItem
@@ -50,12 +50,14 @@ namespace WatchTimeTracker.API.DAO
         {
             using var conn = GetConnection();
             var cmd = conn.CreateCommand();
+            // ВАЖНО: в Microsoft.Data.Sqlite параметры привязываются по ИМЕНИ,
+            // а не по позиции. Повторяющиеся "?" не работают — используем уникальные имена.
             cmd.CommandText = @"INSERT INTO Tasks (ProjectId, Name, Description, Status) 
-                                VALUES (?, ?, ?, ?); SELECT last_insert_rowid();";
-            cmd.Parameters.AddWithValue("?", t.ProjectId);
-            cmd.Parameters.AddWithValue("?", t.Name);
-            cmd.Parameters.AddWithValue("?", t.Description ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("?", t.Status);
+                                VALUES ($projectId, $name, $description, $status); SELECT last_insert_rowid();";
+            cmd.Parameters.AddWithValue("$projectId", t.ProjectId);
+            cmd.Parameters.AddWithValue("$name", t.Name);
+            cmd.Parameters.AddWithValue("$description", t.Description ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("$status", t.Status);
             return Convert.ToInt32(cmd.ExecuteScalar());
         }
 
@@ -63,12 +65,12 @@ namespace WatchTimeTracker.API.DAO
         {
             using var conn = GetConnection();
             var cmd = conn.CreateCommand();
-            cmd.CommandText = "UPDATE Tasks SET ProjectId = ?, Name = ?, Description = ?, Status = ? WHERE Id = ?";
-            cmd.Parameters.AddWithValue("?", t.ProjectId);
-            cmd.Parameters.AddWithValue("?", t.Name);
-            cmd.Parameters.AddWithValue("?", t.Description ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("?", t.Status);
-            cmd.Parameters.AddWithValue("?", t.Id);
+            cmd.CommandText = "UPDATE Tasks SET ProjectId = $projectId, Name = $name, Description = $description, Status = $status WHERE Id = $id";
+            cmd.Parameters.AddWithValue("$projectId", t.ProjectId);
+            cmd.Parameters.AddWithValue("$name", t.Name);
+            cmd.Parameters.AddWithValue("$description", t.Description ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("$status", t.Status);
+            cmd.Parameters.AddWithValue("$id", t.Id);
             cmd.ExecuteNonQuery();
         }
 
@@ -76,8 +78,8 @@ namespace WatchTimeTracker.API.DAO
         {
             using var conn = GetConnection();
             var cmd = conn.CreateCommand();
-            cmd.CommandText = "DELETE FROM Tasks WHERE Id = ?";
-            cmd.Parameters.AddWithValue("?", id);
+            cmd.CommandText = "DELETE FROM Tasks WHERE Id = $id";
+            cmd.Parameters.AddWithValue("$id", id);
             cmd.ExecuteNonQuery();
         }
     }

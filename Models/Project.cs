@@ -1,11 +1,11 @@
-namespace TimeTrackerWatch.Models 
+namespace WatchTimeTracker.Models 
 {
-    /// \brief Модель задачи
-    /// \details Хранит задачу конкретному проекту и содержит записи времени
+    /// \brief Модель проекта
+    /// \details Хранит проект, при необходимости привязанный к клиенту, и содержит задачи
     public class Project
     {
          /// \brief Идентификатор проекта (Первичный ключ)
-         public int id {get; set; }
+         public int Id { get; set; }
 
          /// \brief Идентификатор клиента, которому принадлежит проект (Внешний ключ)
          /// \warning Если проект не привязан к клиенту
