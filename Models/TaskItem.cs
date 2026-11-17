@@ -1,11 +1,11 @@
-namespace WatchTimeTracker.Models
+namespace TimeTrackWatch.Models
 {
        /// \brief Модель задачи
-       /// \details Задача принадлежит одному конкретному проекту и содержит записи времени
+       /// \details Задача принадлежит одному\конктреному проекту и содержит записи времени
        public class TaskItem
        {
             /// \brief Идентификатор уникальной задачи (Первичный ключ)
-            public int Id { get; set; }
+            public int id { get; set; }
 
             /// \brief Идентификатор проекта, к которому относится задача (Внешний ключ)
             /// \warning При удалении проекта удаляются все его задачи (CASCADE)

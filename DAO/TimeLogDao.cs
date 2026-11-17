@@ -33,8 +33,8 @@ namespace WatchTimeTracker.API.DAO
         {
             using var conn = GetConnection();
             var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT Id, TaskId, StartedAt, EndedAt, DurationSeconds, Comment FROM TimeLogs WHERE Id = $id";
-            cmd.Parameters.AddWithValue("$id", id);
+            cmd.CommandText = "SELECT Id, TaskId, StartedAt, EndedAt, DurationSeconds, Comment FROM TimeLogs WHERE Id = ?";
+            cmd.Parameters.AddWithValue("?", id);
             using var r = cmd.ExecuteReader();
             if (!r.Read()) return null;
             return new TimeLog
@@ -52,15 +52,13 @@ namespace WatchTimeTracker.API.DAO
         {
             using var conn = GetConnection();
             var cmd = conn.CreateCommand();
-            // ВАЖНО: в Microsoft.Data.Sqlite параметры привязываются по ИМЕНИ,
-            // а не по позиции. Повторяющиеся "?" не работают — используем уникальные имена.
             cmd.CommandText = @"INSERT INTO TimeLogs (TaskId, StartedAt, EndedAt, DurationSeconds, Comment) 
-                                VALUES ($taskId, $startedAt, $endedAt, $duration, $comment); SELECT last_insert_rowid();";
-            cmd.Parameters.AddWithValue("$taskId", t.TaskId);
-            cmd.Parameters.AddWithValue("$startedAt", t.StartedAt.ToString("yyyy-MM-dd HH:mm:ss"));
-            cmd.Parameters.AddWithValue("$endedAt", t.EndedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("$duration", t.DurationSeconds ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("$comment", t.Comment ?? (object)DBNull.Value);
+                                VALUES (?, ?, ?, ?, ?); SELECT last_insert_rowid();";
+            cmd.Parameters.AddWithValue("?", t.TaskId);
+            cmd.Parameters.AddWithValue("?", t.StartedAt.ToString("yyyy-MM-dd HH:mm:ss"));
+            cmd.Parameters.AddWithValue("?", t.EndedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("?", t.DurationSeconds ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("?", t.Comment ?? (object)DBNull.Value);
             return Convert.ToInt32(cmd.ExecuteScalar());
         }
 
@@ -68,14 +66,14 @@ namespace WatchTimeTracker.API.DAO
         {
             using var conn = GetConnection();
             var cmd = conn.CreateCommand();
-            cmd.CommandText = @"UPDATE TimeLogs SET TaskId = $taskId, StartedAt = $startedAt, EndedAt = $endedAt, 
-                                DurationSeconds = $duration, Comment = $comment WHERE Id = $id";
-            cmd.Parameters.AddWithValue("$taskId", t.TaskId);
-            cmd.Parameters.AddWithValue("$startedAt", t.StartedAt.ToString("yyyy-MM-dd HH:mm:ss"));
-            cmd.Parameters.AddWithValue("$endedAt", t.EndedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("$duration", t.DurationSeconds ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("$comment", t.Comment ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("$id", t.Id);
+            cmd.CommandText = @"UPDATE TimeLogs SET TaskId = ?, StartedAt = ?, EndedAt = ?, 
+                                DurationSeconds = ?, Comment = ? WHERE Id = ?";
+            cmd.Parameters.AddWithValue("?", t.TaskId);
+            cmd.Parameters.AddWithValue("?", t.StartedAt.ToString("yyyy-MM-dd HH:mm:ss"));
+            cmd.Parameters.AddWithValue("?", t.EndedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("?", t.DurationSeconds ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("?", t.Comment ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("?", t.Id);
             cmd.ExecuteNonQuery();
         }
 
@@ -83,8 +81,8 @@ namespace WatchTimeTracker.API.DAO
         {
             using var conn = GetConnection();
             var cmd = conn.CreateCommand();
-            cmd.CommandText = "DELETE FROM TimeLogs WHERE Id = $id";
-            cmd.Parameters.AddWithValue("$id", id);
+            cmd.CommandText = "DELETE FROM TimeLogs WHERE Id = ?";
+            cmd.Parameters.AddWithValue("?", id);
             cmd.ExecuteNonQuery();
         }
 
@@ -100,11 +98,11 @@ namespace WatchTimeTracker.API.DAO
                 FROM TimeLogs tl
                 JOIN Tasks t ON t.Id = tl.TaskId
                 JOIN Projects p ON p.Id = t.ProjectId
-                WHERE tl.StartedAt >= $from AND tl.StartedAt < $to AND tl.EndedAt IS NOT NULL
+                WHERE tl.StartedAt >= ? AND tl.StartedAt < ? AND tl.EndedAt IS NOT NULL
                 GROUP BY p.Id, p.Name
                 ORDER BY 2 DESC";
-            cmd.Parameters.AddWithValue("$from", from.ToString("yyyy-MM-dd HH:mm:ss"));
-            cmd.Parameters.AddWithValue("$to", to.ToString("yyyy-MM-dd HH:mm:ss"));
+            cmd.Parameters.AddWithValue("?", from.ToString("yyyy-MM-dd HH:mm:ss"));
+            cmd.Parameters.AddWithValue("?", to.ToString("yyyy-MM-dd HH:mm:ss"));
             using var r = cmd.ExecuteReader();
             while (r.Read())
                 list.Add((r.GetString(0), r.GetDouble(1)));

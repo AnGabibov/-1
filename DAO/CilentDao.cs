@@ -30,8 +30,8 @@ namespace WatchTimeTracker.API.DAO
         {
             using var conn = GetConnection();
             var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT Id, Name, ContactInfo FROM Clients WHERE Id = $id";
-            cmd.Parameters.AddWithValue("$id", id);
+            cmd.CommandText = "SELECT Id, Name, ContactInfo FROM Clients WHERE Id = ?";
+            cmd.Parameters.AddWithValue("?", id);
             using var r = cmd.ExecuteReader();
             if (!r.Read()) return null;
             return new Client { Id = r.GetInt32(0), Name = r.GetString(1), ContactInfo = r.IsDBNull(2) ? null : r.GetString(2) };
@@ -41,11 +41,9 @@ namespace WatchTimeTracker.API.DAO
         {
             using var conn = GetConnection();
             var cmd = conn.CreateCommand();
-            // ВАЖНО: в Microsoft.Data.Sqlite параметры привязываются по ИМЕНИ,
-            // а не по позиции. Повторяющиеся "?" не работают — используем уникальные имена.
-            cmd.CommandText = "INSERT INTO Clients (Name, ContactInfo) VALUES ($name, $contactInfo); SELECT last_insert_rowid();";
-            cmd.Parameters.AddWithValue("$name", c.Name);
-            cmd.Parameters.AddWithValue("$contactInfo", c.ContactInfo ?? (object)DBNull.Value);
+            cmd.CommandText = "INSERT INTO Clients (Name, ContactInfo) VALUES (?, ?); SELECT last_insert_rowid();";
+            cmd.Parameters.AddWithValue("?", c.Name);
+            cmd.Parameters.AddWithValue("?", c.ContactInfo ?? (object)DBNull.Value);
             return Convert.ToInt32(cmd.ExecuteScalar());
         }
 
@@ -53,10 +51,10 @@ namespace WatchTimeTracker.API.DAO
         {
             using var conn = GetConnection();
             var cmd = conn.CreateCommand();
-            cmd.CommandText = "UPDATE Clients SET Name = $name, ContactInfo = $contactInfo WHERE Id = $id";
-            cmd.Parameters.AddWithValue("$name", c.Name);
-            cmd.Parameters.AddWithValue("$contactInfo", c.ContactInfo ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("$id", c.Id);
+            cmd.CommandText = "UPDATE Clients SET Name = ?, ContactInfo = ? WHERE Id = ?";
+            cmd.Parameters.AddWithValue("?", c.Name);
+            cmd.Parameters.AddWithValue("?", c.ContactInfo ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("?", c.Id);
             cmd.ExecuteNonQuery();
         }
 
@@ -64,8 +62,8 @@ namespace WatchTimeTracker.API.DAO
         {
             using var conn = GetConnection();
             var cmd = conn.CreateCommand();
-            cmd.CommandText = "DELETE FROM Clients WHERE Id = $id";
-            cmd.Parameters.AddWithValue("$id", id);
+            cmd.CommandText = "DELETE FROM Clients WHERE Id = ?";
+            cmd.Parameters.AddWithValue("?", id);
             cmd.ExecuteNonQuery();
         }
     }

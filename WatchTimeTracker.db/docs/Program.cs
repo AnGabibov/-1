@@ -12,19 +12,9 @@ var app = builder.Build();
 var dbPath = "TimeTracker.db";
 if (!File.Exists(dbPath))
 {
-    // init.sql копируется в выходную директорию (см. WTT.API.csproj),
-    // но на время разработки может лежать рядом с исходниками — учитываем оба варианта.
-    var scriptPath = File.Exists("init.sql")
-        ? "init.sql"
-        : Path.Combine(AppContext.BaseDirectory, "init.sql");
-
-    if (!File.Exists(scriptPath))
-        throw new FileNotFoundException(
-            "Не найден скрипт инициализации базы данных init.sql.");
-
     using var connection = new SqliteConnection($"Data Source={dbPath}");
     connection.Open();
-    var sqlScript = File.ReadAllText(scriptPath);
+    var sqlScript = File.ReadAllText("init.sql");
     using var command = new SqliteCommand(sqlScript, connection);
     command.ExecuteNonQuery();
     Console.WriteLine("База данных успешно создана!");

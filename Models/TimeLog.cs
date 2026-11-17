@@ -1,12 +1,12 @@
-namespace WatchTimeTracker.Models 
+namespace TimeTrackWatch.Models 
 {       
         /// \brief Модель записи времени  (Time Log)
         /// \details Содержит информацию  о конкретном отрезке времени, потраченное на задачу.
-        /// Если поле EndedAt = null, означает что таймер еще идет.
+        /// Если поле EndTime = null, означает что таймер еще идет.
         public class TimeLog
         {
             /// \brief Идентификатор уникальной записи
-            public int Id { get; set; }
+            public int id { get; set; }
 
             /// \brief Идентификатор задачи, к которой относится запись 
             public int TaskId { get; set; }

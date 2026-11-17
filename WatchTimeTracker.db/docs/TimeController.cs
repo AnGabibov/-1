@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 
 namespace WatchTimeTracker.API.Controllers
 {
@@ -24,13 +23,10 @@ namespace WatchTimeTracker.API.Controllers
             int projectId = Convert.ToInt32(cmdProject.ExecuteScalar());
 
             var cmdLog = connection.CreateCommand();
-            // Пока таймер активен, EndedAt и DurationSeconds остаются NULL
-            // (признак активного таймера — "EndedAt IS NULL", см. TimeLogDao.GetActiveTimers).
-            // Длительность вычисляется при остановке.
             cmdLog.CommandText = "INSERT INTO TimeLogs (ProjectId, StartedAt) VALUES ($pid, $start); SELECT last_insert_rowid();";
             cmdLog.Parameters.AddWithValue("$pid", projectId);
-            cmdLog.Parameters.AddWithValue("$start", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
-            long logId = Convert.ToInt64(cmdLog.ExecuteScalar());
+            cmdLog.Parameters.AddWithValue("$start", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"));
+            long logId = (long)cmdLog.ExecuteScalar();
 
             return Ok($"Таймер запущен! ID записи: {logId}");
         }
@@ -51,20 +47,13 @@ namespace WatchTimeTracker.API.Controllers
             var startedAtStr = reader.GetString(0);
             if (!reader.IsDBNull(1)) return BadRequest("Эта запись уже остановлена");
 
-            // Время хранится в UTC в формате "yyyy-MM-dd HH:mm:ss",
-            // поэтому парсим инвариантной культурой с явным указанием Kind=Utc.
-            // Обычный DateTime.Parse использует локальную культуру/часовой пояс,
-            // из-за чего длительность получилась бы неверной.
-            DateTime startedAt = DateTime.ParseExact(
-                startedAtStr, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture,
-                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+            DateTime startedAt = DateTime.Parse(startedAtStr);
             DateTime endedAt = DateTime.UtcNow;
             int duration = (int)(endedAt - startedAt).TotalSeconds;
-            if (duration < 0) duration = 0; // защита от CHECK (DurationSeconds >= 0)
 
             var cmdUpdate = connection.CreateCommand();
             cmdUpdate.CommandText = "UPDATE TimeLogs SET EndedAt = $end, DurationSeconds = $dur WHERE Id = $id";
-            cmdUpdate.Parameters.AddWithValue("$end", endedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
+            cmdUpdate.Parameters.AddWithValue("$end", endedAt.ToString("yyyy-MM-dd HH:mm:ss"));
             cmdUpdate.Parameters.AddWithValue("$dur", duration);
             cmdUpdate.Parameters.AddWithValue("$id", id);
             cmdUpdate.ExecuteNonQuery();
