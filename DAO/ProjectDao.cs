@@ -34,8 +34,8 @@ namespace WatchTimeTracker.API.DAO
         {
             using var conn = GetConnection();
             var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT Id, ClientId, Name, Description, Color, HourlyRate, Status FROM Projects WHERE Id = ?";
-            cmd.Parameters.AddWithValue("?", id);
+            cmd.CommandText = "SELECT Id, ClientId, Name, Description, Color, HourlyRate, Status FROM Projects WHERE Id = $id";
+            cmd.Parameters.AddWithValue("$id", id);
             using var r = cmd.ExecuteReader();
             if (!r.Read()) return null;
             return new Project
@@ -54,14 +54,16 @@ namespace WatchTimeTracker.API.DAO
         {
             using var conn = GetConnection();
             var cmd = conn.CreateCommand();
+            // ВАЖНО: в Microsoft.Data.Sqlite параметры привязываются по ИМЕНИ,
+            // а не по позиции. Повторяющиеся "?" не работают — используем уникальные имена.
             cmd.CommandText = @"INSERT INTO Projects (ClientId, Name, Description, Color, HourlyRate, Status) 
-                                VALUES (?, ?, ?, ?, ?, ?); SELECT last_insert_rowid();";
-            cmd.Parameters.AddWithValue("?", p.ClientId ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("?", p.Name);
-            cmd.Parameters.AddWithValue("?", p.Description ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("?", p.Color);
-            cmd.Parameters.AddWithValue("?", p.HourlyRate ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("?", p.Status);
+                                VALUES ($clientId, $name, $description, $color, $hourlyRate, $status); SELECT last_insert_rowid();";
+            cmd.Parameters.AddWithValue("$clientId", p.ClientId ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("$name", p.Name);
+            cmd.Parameters.AddWithValue("$description", p.Description ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("$color", p.Color);
+            cmd.Parameters.AddWithValue("$hourlyRate", p.HourlyRate ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("$status", p.Status);
             return Convert.ToInt32(cmd.ExecuteScalar());
         }
 
@@ -69,15 +71,15 @@ namespace WatchTimeTracker.API.DAO
         {
             using var conn = GetConnection();
             var cmd = conn.CreateCommand();
-            cmd.CommandText = @"UPDATE Projects SET ClientId = ?, Name = ?, Description = ?, 
-                                Color = ?, HourlyRate = ?, Status = ? WHERE Id = ?";
-            cmd.Parameters.AddWithValue("?", p.ClientId ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("?", p.Name);
-            cmd.Parameters.AddWithValue("?", p.Description ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("?", p.Color);
-            cmd.Parameters.AddWithValue("?", p.HourlyRate ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("?", p.Status);
-            cmd.Parameters.AddWithValue("?", p.Id);
+            cmd.CommandText = @"UPDATE Projects SET ClientId = $clientId, Name = $name, Description = $description, 
+                                Color = $color, HourlyRate = $hourlyRate, Status = $status WHERE Id = $id";
+            cmd.Parameters.AddWithValue("$clientId", p.ClientId ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("$name", p.Name);
+            cmd.Parameters.AddWithValue("$description", p.Description ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("$color", p.Color);
+            cmd.Parameters.AddWithValue("$hourlyRate", p.HourlyRate ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("$status", p.Status);
+            cmd.Parameters.AddWithValue("$id", p.Id);
             cmd.ExecuteNonQuery();
         }
 
@@ -85,8 +87,8 @@ namespace WatchTimeTracker.API.DAO
         {
             using var conn = GetConnection();
             var cmd = conn.CreateCommand();
-            cmd.CommandText = "DELETE FROM Projects WHERE Id = ?";
-            cmd.Parameters.AddWithValue("?", id);
+            cmd.CommandText = "DELETE FROM Projects WHERE Id = $id";
+            cmd.Parameters.AddWithValue("$id", id);
             cmd.ExecuteNonQuery();
         }
     }
